@@ -17,7 +17,7 @@ inline std::array<char, 9> format_time(std::time_t t, bool utc = false) {
     return out;
 }
 
-// Fixed buffers keep the binary free of `std::string` and with it `libstdc++`.
+// Fixed buffers: no `std::string`, so no `libstdc++`.
 inline constexpr int max_row_bytes = 256;
 
 struct Banner {
@@ -26,7 +26,7 @@ struct Banner {
     int cols = 0;
 };
 
-// Big-glyph version of a `hh:mm:ss` string; characters other than digits and `:` are skipped.
+// Big-glyph `hh:mm:ss`; skips anything but digits and `:`.
 inline Banner render(std::string_view text) {
     Banner b;
     for (char ch : text) {
@@ -48,7 +48,7 @@ struct Pos {
     int col;
 };
 
-// 1-based terminal position that centers a `w` x `h` block; clamps to the top-left corner.
+// 1-based position centering a `w`x`h` block; clamps to the top-left.
 inline Pos center(int rows, int cols, int w, int h) {
     return {std::max(1, (rows - h) / 2 + 1), std::max(1, (cols - w) / 2 + 1)};
 }
