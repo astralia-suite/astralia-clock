@@ -1,12 +1,45 @@
 #!/usr/bin/env bash
-# Usage: ./build.sh [install]
+
+# Build script for astralia-clock
+# Use:
+# <empty>: build and run the unit tests
+# setup: install dependencies
+# build: build only
+# test: build and run the unit tests
+# install: build and install system-wide
+# run: build and start astralia-clock, extra arguments are passed to it
+# uninstall: remove the system-wide install
+# ASTRALIA_CLOCK_BUILD_JOBS=N: parallel compile jobs (default: all cores)
+
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$(readlink -f "$0")")"
 
-[ -d build ] || meson setup build --prefix=/usr
-meson compile -C build
-meson test -C build --print-errorlogs
+BIN=astralia-clock
+JOBS="${ASTRALIA_CLOCK_BUILD_JOBS:-$(nproc)}"
 
-if [ "${1:-}" = install ]; then
-    sudo meson install -C build
-fi
+cmd_setup() {
+    sudo pacman -Syu --needed gcc meson ninja ncurses
+}
+
+cmd_build() {
+    if [[ ! -f build/build.ninja ]]; then
+        meson setup build
+    fi
+    meson compile -C build -j "$JOBS"
+}
+
+cmd_test() { cmd_build; meson test -C build --print-errorlogs; }
+cmd_default() { cmd_test; }
+cmd_install() { cmd_build; sudo meson install -C build --no-rebuild; }
+cmd_run() { cmd_build; "./build/$BIN" "$@"; }
+cmd_uninstall() { sudo ninja -C build uninstall; }
+
+main() {
+    local cmd="${1:-default}"
+    case "$cmd" in
+    default | setup | build | test | install | run | uninstall) shift || true; "cmd_$cmd" "$@" ;;
+    *) echo "unknown command: $cmd" >&2; exit 2 ;;
+    esac
+}
+
+main "$@"
